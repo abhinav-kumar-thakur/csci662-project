@@ -1,0 +1,16 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "prgc",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["-dataset","WebNLG","-checkpoint","bert-base-uncased","-nepochs","10","-batchsize","2","-lambda1","0.4","-lambda2","0.5","-seed","99"]
+        }
+    ]
+}
