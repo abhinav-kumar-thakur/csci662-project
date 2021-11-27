@@ -14,30 +14,31 @@ class myDataset(Dataset):
         self.labels = labels
         self.rel2id = rel2id
         self.tokenizer = tokenizer
-        self.max_seq_len = max_seq_len
         self.encoded_text = self.tokenizer(
                     text,
                     add_special_tokens=True,
                     padding=True,
-                    max_length=self.max_seq_len,
+                    max_length=max_seq_len,
                     truncation=True,
                     return_token_type_ids=False,
                     return_attention_mask=True,
                     return_tensors='pt',
                     )
-        seq_len = self.encoded_text['input_ids'].shape[1]
-        self.labels = utils.GetAllLabels(rel2id,labels,self.encoded_text['input_ids'],self.tokenizer,seq_len)
+        self.seq_len = self.encoded_text['input_ids'].shape[1]
+        self.labels = utils.GetAllLabels(rel2id,labels,self.encoded_text['input_ids'],self.encoded_text['attention_mask'],self.tokenizer,self.seq_len)
    
     def __len__(self):
         return len(self.text)
     
     def __getitem__(self,idx):
         return {
-            'input_ids': self.encoded_text['input_ids'][idx],
-            'attention_mask': self.encoded_text['attention_mask'][idx],
-            'subj_entity_labels': self.labels['subj_entity_labels'][idx],
-            'relation_labels': self.labels['relation_labels'][idx],
-            'obj_entity_labels': self.labels['obj_entity_labels'][idx]
+            'input_ids': self.labels[idx]['input_ids'],
+            'attention_mask': self.labels[idx]['attention_mask'],
+            'subj_seq_tag': self.labels[idx]['subj_seq_tag'],
+            'obj_seq_tag': self.labels[idx]['obj_seq_tag'],
+            'target_rel': self.labels[idx]['target_rel'],
+            'corres_matrix': self.labels[idx]['corres_matrix'],
+            'relation_labels': self.labels[idx]['relation_labels']
         }
 
 class PRGC(nn.Module):
@@ -61,7 +62,7 @@ class PRGC(nn.Module):
         self.global_corr = nn.Linear(2*hidden_dim,1)
         self.lambda_2 = lambda_2
     
-    def forward(self,input_ids,attention_mask):
+    def forward(self,input_ids,attention_mask,subj_seq_tag,obj_seq_tag,target_rel,corres_matrix,relation_labels):
         # Bert Embedding
         with torch.no_grad():
             embedded = self.plm_model(input_ids=input_ids,attention_mask=attention_mask)['last_hidden_state']
@@ -86,11 +87,16 @@ def train_epoch(model,iterator,optimizer,criterion,device):
     for idx, batch in enumerate(iterator):
         print(f'\n\n {idx}')
         optimizer.zero_grad()
-        ids = batch['input_ids'].to(device); attention_mask = batch['attention_mask'].to(device)
-        rel_labels = batch['relation_labels'].to(device)
-        subj_entity_labels = batch['subj_entity_labels'].to(device); obj_entity_labels = batch['obj_entity_labels'].to(device)
-        logits = model(ids,attention_mask)
-        loss = criterion(logits,rel_labels)
+        ids = batch['input_ids'].to(device); 
+        attention_mask = batch['attention_mask'].to(device)
+        subj_seq_tag = batch['subj_seq_tag'].to(device)
+        obj_seq_tag = batch['obj_seq_tag'].to(device)
+        target_rel = batch['target_rel'].to(device)
+        corres_matrix = batch['corres_matrix'].to(device)
+        relation_labels = batch['relation_labels'].to(device)
+
+        logits = model(ids,attention_mask,subj_seq_tag,obj_seq_tag,target_rel,corres_matrix,relation_labels)
+        loss = criterion(logits,relation_labels)
         loss.backward()
         optimizer.step()
         epoch_loss+=loss.item()
