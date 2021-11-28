@@ -167,16 +167,28 @@ def train_epoch(model,iterator,epoch,device):
         
         # Stage 1 Loss
         loss_rel = criterion_BCE(stage1,relation_labels.float())
+        rec_rel = ((torch.sigmoid(stage1) > model.lambda_1) & relation_labels.bool()).sum().item() / relation_labels.sum().item()
+        prec_rel = ((torch.sigmoid(stage1) > model.lambda_1) & relation_labels.bool()).sum().item() / (torch.sigmoid(stage1) > model.lambda_1).sum().item()
 
         # Stage 2 Loss
         loss_tag = (criterion_CE(subj_pred_tag.view(-1,3),subj_seq_tag.flatten()) + criterion_CE(obj_pred_tag.view(-1,3),obj_seq_tag.flatten()))
         loss_tag = 0.5 * (loss_tag*attention_mask.flatten()).sum() / attention_mask.sum()
-        
+        prec_subj_tag_1 = ((subj_seq_tag==1) & (torch.argmax(subj_pred_tag,2)==1)).sum().item() / max(1,(torch.argmax(subj_pred_tag,2)==1).sum().item())
+        prec_subj_tag_2 = ((subj_seq_tag==2) & (torch.argmax(subj_pred_tag,2)==2)).sum().item() / max(1,(torch.argmax(subj_pred_tag,2)==2).sum().item())
+        rec_subj_tag_1 = ((subj_seq_tag==1) & (torch.argmax(subj_pred_tag,2)==1)).sum().item() / max(1,(subj_seq_tag==1).sum().item())
+        rec_subj_tag_2 = ((subj_seq_tag==2) & (torch.argmax(subj_pred_tag,2)==2)).sum().item() /max(1,(subj_seq_tag==2).sum().item())
+        prec_obj_tag_1 = ((obj_seq_tag==1) & (torch.argmax(obj_pred_tag,2)==1)).sum().item() / max(1,(torch.argmax(obj_pred_tag,2)==1).sum().item())
+        prec_obj_tag_2 = ((obj_seq_tag==2) & (torch.argmax(obj_pred_tag,2)==2)).sum().item() / max(1,(torch.argmax(obj_pred_tag,2)==2).sum().item())
+        rec_obj_tag_1 = ((obj_seq_tag==1) & (torch.argmax(obj_pred_tag,2)==1)).sum().item() / max(1,(obj_seq_tag==1).sum().item())
+        rec_obj_tag_2 = ((obj_seq_tag==2) & (torch.argmax(obj_pred_tag,2)==2)).sum().item() / max(1,(obj_seq_tag==2).sum().item())
+
         # Stage 3 Loss
         matrix_mask = attention_mask.unsqueeze(-1) * attention_mask.unsqueeze(1)
         loss_corres = criterion_BCE_NoReduction(pred_corres_matrix.squeeze(3),corres_matrix.float())
         loss_corres = (loss_corres*matrix_mask).sum() / matrix_mask.sum()
-        
+        rec_corres = ((torch.sigmoid(pred_corres_matrix).squeeze(-1) > model.lambda_2) & corres_matrix.bool()).sum().item() / corres_matrix.sum().item()
+        prec_corres = ((torch.sigmoid(pred_corres_matrix).squeeze(-1) > model.lambda_2) & corres_matrix.bool()).sum().item() / max(1,(torch.sigmoid(pred_corres_matrix) > model.lambda_2).sum().item())
+
         loss = loss_rel + loss_tag + loss_corres
         loss.backward()
         model.optimizer.step()
@@ -186,6 +198,14 @@ def train_epoch(model,iterator,epoch,device):
         epoch_loss_corres+=loss_corres.item()
 
         tepoch.set_postfix({'loss': epoch_loss/(bi+1),'loss_rel': epoch_loss_rel/(bi+1),'loss_tag': epoch_loss_tag/(bi+1),'loss_corres': epoch_loss_corres/(bi+1)})
+        with open('train.log', 'w+') as f:
+            f.write(f'rec_rel: {rec_rel}\t prec_el: {prec_rel} \n\n\n\
+prec_subj_tag_1: {prec_subj_tag_1}\t prec_subj_tag_2: {prec_subj_tag_2}\n \
+rec_subj_tag_1: {rec_subj_tag_1}\t  rec_subj_tag_2: {rec_subj_tag_2}\n\
+prec_obj_tag_1: {prec_obj_tag_1}\t  prec_obj_tag_2: {prec_obj_tag_2}\n\
+rec_obj_tag_1: {rec_obj_tag_1}\t   rec_obj_tag_2: {rec_obj_tag_2}\n\n\n\
+rec_corres: {rec_corres}\t  prec_corres: {prec_corres}' )
+
     return epoch_loss/len(iterator)
 
 def evaluate_epoch(model,iterator,device):
