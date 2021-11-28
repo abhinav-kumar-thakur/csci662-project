@@ -7,8 +7,10 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import AutoModel, AutoTokenizer
 import argparse
 import utils
+from tqdm import tqdm
+import logging
 
-class myDataset(Dataset):
+class TrainDataset(Dataset):
     def __init__(self,text,labels,rel2id,tokenizer,max_seq_len):             
         self.text = text
         self.labels = labels
@@ -25,7 +27,7 @@ class myDataset(Dataset):
                     return_tensors='pt',
                     )
         self.seq_len = self.encoded_text['input_ids'].shape[1]
-        self.labels = utils.GetAllLabels(rel2id,labels,self.encoded_text['input_ids'],self.encoded_text['attention_mask'],self.tokenizer,self.seq_len)
+        self.labels = utils.GetTrainFeatures(rel2id,labels,self.encoded_text['input_ids'],self.encoded_text['attention_mask'],self.tokenizer,self.seq_len)
    
     def __len__(self):
         return len(self.text)
@@ -41,6 +43,31 @@ class myDataset(Dataset):
             'relation_labels': self.labels[idx]['relation_labels']
         }
 
+class ValDataset(Dataset):
+    def __init__(self,text,labels,rel2id,tokenizer,max_seq_len):             
+        self.text = text
+        self.labels = labels
+        self.rel2id = rel2id
+        self.tokenizer = tokenizer
+        self.encoded_text = self.tokenizer(
+                    text,
+                    add_special_tokens=True,
+                    padding=True,
+                    max_length=max_seq_len,
+                    truncation=True,
+                    return_token_type_ids=False,
+                    return_attention_mask=True,
+                    return_tensors='pt',
+                    )
+        self.seq_len = self.encoded_text['input_ids'].shape[1]
+        self.labels = utils.GetValFeatures(rel2id,labels,self.encoded_text['input_ids'],self.encoded_text['attention_mask'],self.tokenizer,self.seq_len)
+   
+    def __len__(self):
+        return len(self.text)
+    
+    def __getitem__(self,idx):
+        return self.labels[idx]['input_ids'], self.labels[idx]['attention_mask'], self.labels[idx]['triples']
+
 class PRGC(nn.Module):
     def __init__(self,plm_model,rel_num,lambda_1,lambda_2):
         super().__init__()
@@ -49,43 +76,71 @@ class PRGC(nn.Module):
         self.plm_model = plm_model
         hidden_dim = plm_model.config.hidden_size
         
-        # Relation Trainable Embedding Matrix
-        self.rel_embedding = nn.Embedding(num_embeddings=rel_num,embedding_dim=hidden_dim)
-
         # Stage 1
         self.rel_judge = nn.Linear(hidden_dim,rel_num)
         self.lambda_1 = lambda_1
+        
         # Stage 2
         self.tag_subject = nn.Linear(hidden_dim,3)
         self.tag_object = nn.Linear(hidden_dim,3)
+        # Relation Trainable Embedding Matrix
+        self.rel_embedding = nn.Embedding(num_embeddings=rel_num,embedding_dim=hidden_dim)
+        
         # Stage 3
         self.global_corr = nn.Linear(2*hidden_dim,1)
         self.lambda_2 = lambda_2
     
-    def forward(self,input_ids,attention_mask,subj_seq_tag,obj_seq_tag,target_rel,corres_matrix,relation_labels):
+    def forward(self,input_ids,attention_mask,target_rel,mode):
         # Bert Embedding
         with torch.no_grad():
-            embedded = self.plm_model(input_ids=input_ids,attention_mask=attention_mask)['last_hidden_state']
+            embed_tokens = self.plm_model(input_ids=input_ids,attention_mask=attention_mask)['last_hidden_state']
         # Stage 1
-        embedded_masked = embedded * attention_mask[:,:,None]
+        embedded_masked = embed_tokens * attention_mask[:,:,None]
         num_nonmasked = torch.sum(attention_mask,dim=1)
         stage1_avgpool = torch.sum(embedded_masked,dim=1) / num_nonmasked[:,None]
-        stage1 = torch.sigmoid(self.rel_judge(stage1_avgpool))
-        pot_rel_mask = stage1 >= self.lambda_1
-
-        # Stage 2
-
-
+        stage1 = self.rel_judge(stage1_avgpool)
+    
         # Stage 3
+        #TODO: Check if masked embed_tokens is better
+        sub_matrix = embed_tokens.unsqueeze(1).repeat((1, input_ids.shape[1], 1, 1))
+        concat_matrix = torch.cat([sub_matrix, torch.transpose(sub_matrix,1,2)],axis=3)
+        pred_corres_matrix =self.global_corr(concat_matrix)
+        
+        # Stage 2
+        if mode=='train':
+            target_rel_emb = self.rel_embedding(target_rel)
+            
+        elif mode=='eval':
+            potential_relations = torch.sigmoid(stage1) > self.lambda_1
+            sentence_ids, rel_ids = torch.nonzero(potential_relations, as_tuple=True)
+            sentence_embedded = []
+            sentence_mask = []
+            for sentence_id, rel_id in zip(sentence_ids, rel_ids):
+                sentence_embedded.append(embed_tokens[sentence_id])
+                sentence_mask.append(attention_mask[sentence_id])
+            
+            embed_tokens = torch.stack(sentence_embedded)
+            attention_mask = torch.stack(sentence_mask)
+            target_rel_emb = self.rel_embedding(rel_ids)
 
-        return True
+        #TODO: Check if masked embed_tokens is better
+        target_rel_emb = target_rel_emb.unsqueeze(1).repeat((1,input_ids.shape[1],1))
+        fusion = target_rel_emb + embed_tokens
+        subj_pred_tag = self.tag_subject(fusion)
+        obj_pred_tag = self.tag_object(fusion)
 
-def train_epoch(model,iterator,optimizer,criterion,device):
+        if mode == 'eval':
+            return torch.stack((sentence_ids, rel_ids), dim=1), subj_pred_tag, obj_pred_tag, pred_corres_matrix
+        
+        return stage1, subj_pred_tag, obj_pred_tag, pred_corres_matrix
+
+def train_epoch(model,iterator,optimizer,epoch,device):
     epoch_loss = 0
-    correct_preds = 0
     model.train()
-    for idx, batch in enumerate(iterator):
-        print(f'\n\n {idx}')
+    criterion_BCE = nn.BCEWithLogitsLoss()
+    criterion_CE = nn.CrossEntropyLoss(reduction='none')
+    tepoch = tqdm(iterator,desc=f'Epoch {epoch}', total=len(iterator))
+    for bi,batch in enumerate(tepoch):
         optimizer.zero_grad()
         ids = batch['input_ids'].to(device); 
         attention_mask = batch['attention_mask'].to(device)
@@ -95,26 +150,49 @@ def train_epoch(model,iterator,optimizer,criterion,device):
         corres_matrix = batch['corres_matrix'].to(device)
         relation_labels = batch['relation_labels'].to(device)
 
-        logits = model(ids,attention_mask,subj_seq_tag,obj_seq_tag,target_rel,corres_matrix,relation_labels)
-        loss = criterion(logits,relation_labels)
+        stage1, subj_pred_tag, obj_pred_tag, pred_corres_matrix = model(ids,attention_mask,target_rel,mode='train')
+        
+        # Stage 1 Loss
+        loss_rel = criterion_BCE(stage1,relation_labels.float())
+        
+
+        # Stage 2 Loss
+        loss_tag = (criterion_CE(subj_pred_tag.view(-1,3),subj_seq_tag.flatten()) + criterion_CE(obj_pred_tag.view(-1,3),obj_seq_tag.flatten()))
+        loss_tag = 0.5 * (loss_tag*attention_mask.flatten()).sum() / attention_mask.sum()
+        
+        # Stage 3 Loss
+        loss_corres = criterion_BCE(pred_corres_matrix.squeeze(3),corres_matrix.float())
+        
+        loss = loss_rel + loss_tag + loss_corres
         loss.backward()
         optimizer.step()
         epoch_loss+=loss.item()
-        correct_preds+=torch.sum(torch.argmax(logits,dim=1)==true_labels)
-    return epoch_loss/len(iterator), correct_preds/(len(iterator)*iterator.batch_size)
+        tepoch.set_postfix({'loss': epoch_loss/(bi+1)})
+    return epoch_loss/len(iterator)
 
-def evaluate_epoch(model,iterator,criterion,device):
+def evaluate_epoch(model,iterator,device):
     epoch_loss = 0
-    correct_preds = 0
     model.eval()
+    criterion_BCE = nn.BCEWithLogitsLoss()
+    criterion_CE = nn.CrossEntropyLoss(reduction='none')
+    correct_num = 0; gold_num = 0; pred_num = 0
     with torch.no_grad():
-        for batch in iterator:
-            ids = batch['input_ids'].to(device); true_labels = batch['labels'].to(device); attention_mask = batch['attention_mask'].to(device)
-            logits = model(ids,attention_mask)
-            loss = criterion(logits,true_labels)
-            epoch_loss+=loss.item()
-            correct_preds+=torch.sum(torch.argmax(logits,dim=1)==true_labels)
-    return epoch_loss/len(iterator), correct_preds/(len(iterator)*iterator.batch_size)
+        for batch in tqdm(iterator):
+            ids = batch[0].to(device); 
+            attention_mask = batch[1].to(device)
+            triples = batch[2]
+
+            sentence_rel_map, subj_pred_tag, obj_pred_tag, pred_corres_matrix = model(ids,attention_mask,None,mode='eval')
+            pred_triples = utils.GenerateTriples(sentence_rel_map, subj_pred_tag, obj_pred_tag, pred_corres_matrix, model.lambda_2)
+
+            sent_correct_num, sent_predict_num, sent_gold_num = utils.FindMatches(triples,pred_triples)
+
+            correct_num+=sent_correct_num; gold_num+=sent_gold_num; pred_num+=sent_predict_num
+
+    metrics = utils.get_metrics(correct_num, pred_num, gold_num)
+    metrics_str = "; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics.items())
+    logging.info("- {} metrics:\n".format('val') + metrics_str)
+    return  metrics
 
 def get_arguments():
     parser = argparse.ArgumentParser(description="PRGC Model")
@@ -146,21 +224,20 @@ if __name__ == "__main__":
     val_text,val_labels = utils.ReadData(args.dataset,'val')
     rel2id = utils.ReadData(args.dataset,'rel2id')
 
-    train_dataset = myDataset(train_text,train_labels,rel2id,plm_tokenizer,max_seq_len)
-    val_dataset = myDataset(val_text,val_labels,rel2id,plm_tokenizer,max_seq_len)
+    train_dataset = TrainDataset(train_text,train_labels,rel2id,plm_tokenizer,max_seq_len)
+    val_dataset = ValDataset(val_text,val_labels,rel2id,plm_tokenizer,max_seq_len)
 
     train_loader = DataLoader(train_dataset,args.batchsize,shuffle=True,drop_last=True)
-    val_loader = DataLoader(val_dataset,args.batchsize,shuffle=True,drop_last=True)
+    val_loader = DataLoader(val_dataset,args.batchsize,shuffle=True,drop_last=True,collate_fn=utils.val_collate_fn)
 
     
     prgc_model = PRGC(plm_weights,rel_num,args.lambda1,args.lambda2).to(device)
     optimizer = optim.AdamW(prgc_model.parameters())
-    criterion = nn.CrossEntropyLoss().to(device)
 
     for epoch in range(args.nepochs):
-        train_epoch_loss, train_epoch_acc = train_epoch(prgc_model,train_loader,optimizer,criterion,device)
-        valid_epoch_loss, valid_epoch_acc = evaluate_epoch(prgc_model,val_loader,criterion,device)
-        print(f'Epoch: {epoch+1}\nTrain: Loss: {train_epoch_loss}, Accuracy: {train_epoch_acc} \
-                                \nValid: Loss: {valid_epoch_loss}, Accuracy: {valid_epoch_acc}')
+        train_epoch_loss = train_epoch(prgc_model,train_loader,optimizer,epoch,device)
+        metrics = evaluate_epoch(prgc_model,val_loader,device)
+        #print(f'Epoch: {epoch+1}\nTrain: Loss: {train_epoch_loss}, Accuracy: {train_epoch_acc} \
+        #                        \nValid: Loss: {valid_epoch_loss}, Accuracy: {valid_epoch_acc}')
     pause=1
 

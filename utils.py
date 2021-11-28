@@ -1,6 +1,60 @@
 import os
 import json
 import torch
+from itertools import product
+
+def FindEntLen(ent_head_idx,ent_tags):
+    count = 1
+    for i in range(ent_head_idx + 1, len(ent_tags)):
+        if ent_tags[i] == 2:
+            count += 1
+            continue
+        break
+    return count
+
+def GenerateTriples(sentence_rel_map, subj_pred_tag, obj_pred_tag, pred_corres_matrix,lambda_2):
+    triples = {i: [] for i in range(pred_corres_matrix.shape[0])} 
+    for idx, sentence_rel in enumerate(sentence_rel_map):
+        rel_id = sentence_rel[1].item()
+        sub_tags = torch.argmax(subj_pred_tag[idx],dim=1)
+        obj_tags = torch.argmax(obj_pred_tag[idx],dim=1)
+
+        sub_head_candidates = (sub_tags == 1).nonzero().squeeze(1).tolist()
+        obj_head_candidates = (obj_tags == 1).nonzero().squeeze(1).tolist()
+        subj_obj_corres = (pred_corres_matrix[sentence_rel[0]].squeeze(2) > lambda_2 )
+        
+        possible_pairs = list(product(sub_head_candidates,obj_head_candidates))
+        triple = [((s,s + FindEntLen(s, sub_tags) -1),rel_id,(o,o + FindEntLen(o, obj_tags) -1)) for s, o in possible_pairs if subj_obj_corres[s,o]]
+
+        triples[sentence_rel[0].item()].extend(triple)
+    return [v for k, v in triples.items()]
+
+def FindMatches(true_triples,pred_triples):
+    gold_num = sum([len(triples) for triples in true_triples])
+    pred_num = sum([len(triples) for triples in pred_triples])
+    correct_num = 0
+    for i in range(len(true_triples)):
+        correct_num+= len(set(true_triples[i]) & set(pred_triples[i]))
+    return correct_num, pred_num, gold_num  
+
+def get_metrics(correct_num, predict_num, gold_num):
+    p = correct_num / predict_num if predict_num > 0 else 0
+    r = correct_num / gold_num if gold_num > 0 else 0
+    f1 = 2 * p * r / (p + r) if (p + r) > 0 else 0
+    return {
+        'correct_num': correct_num,
+        'predict_num': predict_num,
+        'gold_num': gold_num,
+        'precision': p,
+        'recall': r,
+        'f1': f1
+    }
+
+def val_collate_fn(labels_list):
+    input_ids = torch.stack([f[0] for f in labels_list])
+    attention_mask = torch.stack([f[1] for f in labels_list])
+    triples = [f[2] for f in labels_list]
+    return [input_ids,attention_mask,triples]
 
 def ReadData(Dataset,type):
     type = type + '.json'  if type=='rel2id' else type + '_triples.json'
@@ -19,18 +73,17 @@ def ReadData(Dataset,type):
 def FindHeadIdx(head_token_id,input_ids):
     return list(input_ids).index(head_token_id)
 
-def GetAllLabels(rel2id,str_labels,input_ids,attention_mask,tokenizer,seq_len):
+def GetTrainFeatures(rel2id,str_labels,input_ids,attention_mask,tokenizer,seq_len):
     rel_num = len(rel2id)
     tot_ex_len = sum([len(relations) for relations in str_labels])
+
     max_triplet_per_ex = max([len(label) for label in str_labels])
     max_subj_ent_token_per_triplet = max([len(tokenizer.tokenize(label[0])) for example in str_labels for label in example])
     max_obj_ent_token_per_triplet = max([len(tokenizer.tokenize(label[2])) for example in str_labels for label in example])
     
-    
-    
+
     subj_entity_labels = -1 *  torch.ones(size=(len(str_labels),max_triplet_per_ex,max_subj_ent_token_per_triplet),dtype=torch.long)
     obj_entity_labels = -1 *  torch.ones(size=(len(str_labels),max_triplet_per_ex,max_obj_ent_token_per_triplet),dtype=torch.long)
-
 
 
     labels_list = [{} for i in range(tot_ex_len)]
@@ -70,5 +123,28 @@ def GetAllLabels(rel2id,str_labels,input_ids,attention_mask,tokenizer,seq_len):
             labels_list[tot_ex_counter_lagged]['corres_matrix'] = corres_matrix
             labels_list[tot_ex_counter_lagged]['relation_labels'] = relation_labels
             tot_ex_counter_lagged+=1
+
+    return labels_list
+
+def GetEntRange(input_ids,ent_str,tokenizer):
+    ent_ids = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(ent_str))
+    head_idx = FindHeadIdx(ent_ids[0],input_ids)
+    range_ent = (head_idx,head_idx+len(ent_ids)-1)
+    return range_ent
+
+def GetValFeatures(rel2id,str_labels,input_ids,attention_mask,tokenizer,seq_len):
+    
+    labels_list = [{} for i in range(len(str_labels))]
+    
+    for idx1,triples in enumerate(str_labels):
+        triples_list = []
+        for triple in triples:
+            subj_ent_range = GetEntRange(input_ids[idx1],triple[0],tokenizer)
+            rel_id = rel2id[triple[1]]
+            obj_ent_range = GetEntRange(input_ids[idx1],triple[2],tokenizer)
+            triples_list.append((subj_ent_range,rel_id,obj_ent_range))
+        labels_list[idx1]['input_ids'] = input_ids[idx1]
+        labels_list[idx1]['attention_mask'] = attention_mask[idx1]
+        labels_list[idx1]['triples'] = triples_list
 
     return labels_list
