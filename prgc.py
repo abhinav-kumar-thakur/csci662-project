@@ -200,7 +200,7 @@ def evaluate_epoch(model,iterator,device):
 def get_arguments():
     parser = argparse.ArgumentParser(description="PRGC Model")
     parser.add_argument("-dataset",type=str, default='WeNLG', help="Dataset Choice out of {'NYT','NYT-star','WebNLG','WebNLG-star'}")
-    parser.add_argument("-checkpoint",type=str, default='bert-based-uncased', help="chepoint for a pre-trained language model, from https://huggingface.co/models")
+    parser.add_argument("-checkpoint",type=str, default='bert-base-uncased', help="chepoint for a pre-trained language model, from https://huggingface.co/models")
     parser.add_argument("-nepochs", type=int, default='10', help="number of training epochs")
     parser.add_argument("-batchsize", type=int, default='6', help="size of each batch")
     parser.add_argument("-lambda1", type=float, default='0.1', help="threshold for relation judgement, in [0,1]")
