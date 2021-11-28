@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["-dataset","WebNLG","-checkpoint","bert-base-uncased","-nepochs","10","-batchsize","6","-lambda1","0.1","-lambda2","0.5","-seed","2020"]
+            "args": ["-dataset","WebNLG","-checkpoint","bert-base-uncased","-nepochs","10","-batchsize","6","-lambda1","0.1","-lambda2","0.5","-gpuid","2","-seed","2021"]
         }
     ]
 }

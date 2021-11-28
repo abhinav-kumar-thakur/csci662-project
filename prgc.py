@@ -1,4 +1,3 @@
-from os import truncate
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -8,7 +7,7 @@ from transformers import AutoModel, AutoTokenizer
 import argparse
 import utils
 from tqdm import tqdm
-import logging
+import os
 
 class TrainDataset(Dataset):
     def __init__(self,text,labels,rel2id,tokenizer,max_seq_len):             
@@ -92,8 +91,8 @@ class PRGC(nn.Module):
     
     def forward(self,input_ids,attention_mask,target_rel,mode):
         # Bert Embedding
-        with torch.no_grad():
-            embed_tokens = self.plm_model(input_ids=input_ids,attention_mask=attention_mask)['last_hidden_state']
+        #with torch.no_grad():
+        embed_tokens = self.plm_model(input_ids=input_ids,attention_mask=attention_mask)['last_hidden_state']
         # Stage 1
         embedded_masked = embed_tokens * attention_mask[:,:,None]
         num_nonmasked = torch.sum(attention_mask,dim=1)
@@ -136,8 +135,10 @@ class PRGC(nn.Module):
 
 def train_epoch(model,iterator,optimizer,epoch,device):
     epoch_loss = 0
+    epoch_loss_rel = 0; epoch_loss_tag =0; epoch_loss_corres = 0
     model.train()
     criterion_BCE = nn.BCEWithLogitsLoss()
+    criterion_BCE_NoReduction = nn.BCEWithLogitsLoss(reduction='none')
     criterion_CE = nn.CrossEntropyLoss(reduction='none')
     tepoch = tqdm(iterator,desc=f'Epoch {epoch}', total=len(iterator))
     for bi,batch in enumerate(tepoch):
@@ -154,27 +155,29 @@ def train_epoch(model,iterator,optimizer,epoch,device):
         
         # Stage 1 Loss
         loss_rel = criterion_BCE(stage1,relation_labels.float())
-        
 
         # Stage 2 Loss
         loss_tag = (criterion_CE(subj_pred_tag.view(-1,3),subj_seq_tag.flatten()) + criterion_CE(obj_pred_tag.view(-1,3),obj_seq_tag.flatten()))
         loss_tag = 0.5 * (loss_tag*attention_mask.flatten()).sum() / attention_mask.sum()
         
         # Stage 3 Loss
-        loss_corres = criterion_BCE(pred_corres_matrix.squeeze(3),corres_matrix.float())
+        matrix_mask = attention_mask.unsqueeze(-1) * attention_mask.unsqueeze(1)
+        loss_corres = criterion_BCE_NoReduction(pred_corres_matrix.squeeze(3),corres_matrix.float())
+        loss_corres = (loss_corres*matrix_mask).sum() / matrix_mask.sum()
         
         loss = loss_rel + loss_tag + loss_corres
         loss.backward()
         optimizer.step()
         epoch_loss+=loss.item()
-        tepoch.set_postfix({'loss': epoch_loss/(bi+1)})
+        epoch_loss_rel+=loss_rel.item()
+        epoch_loss_tag+=loss_tag.item()
+        epoch_loss_corres+=loss_corres.item()
+
+        tepoch.set_postfix({'loss': epoch_loss/(bi+1),'loss_rel': epoch_loss_rel/(bi+1),'loss_tag': epoch_loss_tag/(bi+1),'loss_corres': epoch_loss_corres/(bi+1)})
     return epoch_loss/len(iterator)
 
 def evaluate_epoch(model,iterator,device):
-    epoch_loss = 0
     model.eval()
-    criterion_BCE = nn.BCEWithLogitsLoss()
-    criterion_CE = nn.CrossEntropyLoss(reduction='none')
     correct_num = 0; gold_num = 0; pred_num = 0
     with torch.no_grad():
         for batch in tqdm(iterator):
@@ -191,18 +194,19 @@ def evaluate_epoch(model,iterator,device):
 
     metrics = utils.get_metrics(correct_num, pred_num, gold_num)
     metrics_str = "; ".join("{}: {:05.3f}".format(k, v) for k, v in metrics.items())
-    logging.info("- {} metrics:\n".format('val') + metrics_str)
+    print(metrics_str)
     return  metrics
 
 def get_arguments():
     parser = argparse.ArgumentParser(description="PRGC Model")
-    parser.add_argument("-dataset",type=str, help="Dataset Choice out of {'NYT','NYT-star','WebNLG','WebNLG-star'}")
-    parser.add_argument("-checkpoint",type=str, help="chepoint for a pre-trained language model, from https://huggingface.co/models")
-    parser.add_argument("-nepochs", type=int, help="number of training epochs")
-    parser.add_argument("-batchsize", type=int, help="size of each batch")
-    parser.add_argument("-lambda1", type=float, help="threshold for relation judgement, in [0,1]")
-    parser.add_argument("-lambda2", type=float, help="threshold for global correspondence, in [0,1]") 
-    parser.add_argument("-seed", type=int, help="RNG seed")
+    parser.add_argument("-dataset",type=str, default='WeNLG', help="Dataset Choice out of {'NYT','NYT-star','WebNLG','WebNLG-star'}")
+    parser.add_argument("-checkpoint",type=str, default='bert-based-uncased', help="chepoint for a pre-trained language model, from https://huggingface.co/models")
+    parser.add_argument("-nepochs", type=int, default='10', help="number of training epochs")
+    parser.add_argument("-batchsize", type=int, default='6', help="size of each batch")
+    parser.add_argument("-lambda1", type=float, default='0.1', help="threshold for relation judgement, in [0,1]")
+    parser.add_argument("-lambda2", type=float, default='0.5', help="threshold for global correspondence, in [0,1]") 
+    parser.add_argument("-gpuid", type=str, default='0', help="GPU id ")
+    parser.add_argument("-seed", type=int, default='2021', help="RNG seed")
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -210,6 +214,9 @@ if __name__ == "__main__":
     rel_num = 216
 
     args = get_arguments()
+
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"]= args.gpuid
 
     torch.manual_seed(args.seed)
 
