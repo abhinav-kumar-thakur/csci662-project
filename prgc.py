@@ -68,12 +68,12 @@ class ValDataset(Dataset):
         return self.labels[idx]['input_ids'], self.labels[idx]['attention_mask'], self.labels[idx]['triples']
 
 class PRGC(nn.Module):
-    def __init__(self,plm_model,rel_num,lambda_1,lambda_2):
+    def __init__(self,bert,rel_num,lambda_1,lambda_2):
         super().__init__()
         
         # Bert Embedding 
-        self.plm_model = plm_model
-        hidden_dim = plm_model.config.hidden_size
+        self.bert = bert
+        hidden_dim = bert.config.hidden_size
         
         # Stage 1
         self.rel_judge = nn.Linear(hidden_dim,rel_num)
@@ -88,11 +88,23 @@ class PRGC(nn.Module):
         # Stage 3
         self.global_corr = nn.Linear(2*hidden_dim,1)
         self.lambda_2 = lambda_2
+
+        # Optimizer
+        self.optimizer = optim.AdamW([
+            {'params': self.bert.parameters(), 'lr': 5*1e-5},
+            {'params': self.rel_judge.parameters(), 'lr': 0.001},
+            {'params': self.tag_subject.parameters(), 'lr': 0.001},
+            {'params': self.tag_object.parameters(), 'lr': 0.001},
+            {'params': self.rel_embedding.parameters(), 'lr': 0.001},
+            {'params': self.global_corr.parameters(), 'lr': 0.001},
+        ], weight_decay=0.01
+        )
+
     
     def forward(self,input_ids,attention_mask,target_rel,mode):
         # Bert Embedding
         #with torch.no_grad():
-        embed_tokens = self.plm_model(input_ids=input_ids,attention_mask=attention_mask)['last_hidden_state']
+        embed_tokens = self.bert(input_ids=input_ids,attention_mask=attention_mask)['last_hidden_state']
         # Stage 1
         embedded_masked = embed_tokens * attention_mask[:,:,None]
         num_nonmasked = torch.sum(attention_mask,dim=1)
@@ -133,7 +145,7 @@ class PRGC(nn.Module):
         
         return stage1, subj_pred_tag, obj_pred_tag, pred_corres_matrix
 
-def train_epoch(model,iterator,optimizer,epoch,device):
+def train_epoch(model,iterator,epoch,device):
     epoch_loss = 0
     epoch_loss_rel = 0; epoch_loss_tag =0; epoch_loss_corres = 0
     model.train()
@@ -142,7 +154,7 @@ def train_epoch(model,iterator,optimizer,epoch,device):
     criterion_CE = nn.CrossEntropyLoss(reduction='none')
     tepoch = tqdm(iterator,desc=f'Epoch {epoch}', total=len(iterator))
     for bi,batch in enumerate(tepoch):
-        optimizer.zero_grad()
+        model.optimizer.zero_grad()
         ids = batch['input_ids'].to(device); 
         attention_mask = batch['attention_mask'].to(device)
         subj_seq_tag = batch['subj_seq_tag'].to(device)
@@ -167,7 +179,7 @@ def train_epoch(model,iterator,optimizer,epoch,device):
         
         loss = loss_rel + loss_tag + loss_corres
         loss.backward()
-        optimizer.step()
+        model.optimizer.step()
         epoch_loss+=loss.item()
         epoch_loss_rel+=loss_rel.item()
         epoch_loss_tag+=loss_tag.item()
@@ -239,10 +251,9 @@ if __name__ == "__main__":
 
     
     prgc_model = PRGC(plm_weights,rel_num,args.lambda1,args.lambda2).to(device)
-    optimizer = optim.AdamW(prgc_model.parameters())
 
     for epoch in range(args.nepochs):
-        train_epoch_loss = train_epoch(prgc_model,train_loader,optimizer,epoch,device)
+        train_epoch_loss = train_epoch(prgc_model,train_loader,epoch,device)
         metrics = evaluate_epoch(prgc_model,val_loader,device)
         #print(f'Epoch: {epoch+1}\nTrain: Loss: {train_epoch_loss}, Accuracy: {train_epoch_acc} \
         #                        \nValid: Loss: {valid_epoch_loss}, Accuracy: {valid_epoch_acc}')
