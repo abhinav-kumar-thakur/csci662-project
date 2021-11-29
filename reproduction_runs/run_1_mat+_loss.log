@@ -1,0 +1,334 @@
+current device: 0
+Model type:
+device: cuda
+Load pre-train model weights...
+Some weights of the model checkpoint at /content/PRGC/pretrain_models/bert_base_cased were not used when initializing BertForRE: ['cls.predictions.transform.LayerNorm.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.bias', 'cls.predictions.decoder.weight', 'cls.predictions.transform.LayerNorm.bias', 'cls.predictions.transform.dense.weight', 'cls.predictions.transform.dense.bias']
+- This IS expected if you are initializing BertForRE from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing BertForRE from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of BertForRE were not initialized from the model checkpoint at /content/PRGC/pretrain_models/bert_base_cased and are newly initialized: ['rel_judgement.hidden2tag.weight', 'sequence_tagging_obj.hidden2tag.bias', 'sequence_tagging_sub.hidden2tag.bias', 'rel_judgement.linear.weight', 'sequence_tagging_sum.hidden2tag_obj.bias', 'sequence_tagging_sum.hidden2tag_sub.bias', 'sequence_tagging_obj.hidden2tag.weight', 'sequence_tagging_sum.linear.weight', 'rel_embedding.weight', 'sequence_tagging_sum.hidden2tag_sub.weight', 'global_corres.linear.bias', 'sequence_tagging_obj.linear.weight', 'rel_judgement.hidden2tag.bias', 'global_corres.linear.weight', 'rel_judgement.linear.bias', 'sequence_tagging_sum.hidden2tag_obj.weight', 'sequence_tagging_sum.linear.bias', 'sequence_tagging_sub.linear.bias', 'sequence_tagging_obj.linear.bias', 'global_corres.hidden2tag.bias', 'sequence_tagging_sub.hidden2tag.weight', 'sequence_tagging_sub.linear.weight', 'global_corres.hidden2tag.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+-done
+Starting training for 100 epoch(s)
+=*==*==*==*==*==*==*==*==*==*=
+Loading train data...
+InputExamples: 5019
+10812 train data loaded!
+=*==*==*==*==*==*==*==*==*==*=
+=*==*==*==*==*==*==*==*==*==*=
+Loading val data...
+InputExamples: 500
+500 val data loaded!
+=*==*==*==*==*==*==*==*==*==*=
+Epoch 1/100
+  0% 0/1802 [00:00<?, ?it/s]/content/PRGC/dataloader.py:55: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at  ../torch/csrc/utils/tensor_new.cpp:201.)
+  corres_tags = torch.tensor([f.corres_tag for f in features], dtype=torch.long)
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.119, loss_mat=0.033, loss_rel=0.126, loss_seq=0.283]
+100% 21/21 [00:04<00:00,  4.96Batch/s]
+- Val metrics:
+correct_num: 24.000; predict_num: 320.000; gold_num: 1223.000; precision: 0.075; recall: 0.020; f1: 0.031
+Checkpoint Directory does not exist! Making directory /content/PRGC/model/ex1
+- Found new best F1
+Epoch 2/100
+100% 1802/1802 [04:59<00:00,  6.01it/s, loss=0.041, loss_mat=0.004, loss_rel=0.036, loss_seq=0.121]
+100% 21/21 [00:04<00:00,  4.85Batch/s]
+- Val metrics:
+correct_num: 457.000; predict_num: 1275.000; gold_num: 1223.000; precision: 0.358; recall: 0.374; f1: 0.366
+- Found new best F1
+Epoch 3/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.024, loss_mat=0.002, loss_rel=0.021, loss_seq=0.069]
+100% 21/21 [00:04<00:00,  4.91Batch/s]
+- Val metrics:
+correct_num: 591.000; predict_num: 1203.000; gold_num: 1223.000; precision: 0.491; recall: 0.483; f1: 0.487
+- Found new best F1
+Epoch 4/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.016, loss_mat=0.002, loss_rel=0.014, loss_seq=0.045]
+100% 21/21 [00:04<00:00,  4.87Batch/s]
+- Val metrics:
+correct_num: 823.000; predict_num: 1414.000; gold_num: 1223.000; precision: 0.582; recall: 0.673; f1: 0.624
+- Found new best F1
+Epoch 5/100
+100% 1802/1802 [04:59<00:00,  6.01it/s, loss=0.011, loss_mat=0.001, loss_rel=0.010, loss_seq=0.033]
+100% 21/21 [00:04<00:00,  4.96Batch/s]
+- Val metrics:
+correct_num: 870.000; predict_num: 1326.000; gold_num: 1223.000; precision: 0.656; recall: 0.711; f1: 0.683
+- Found new best F1
+Epoch 6/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.010, loss_mat=0.001, loss_rel=0.008, loss_seq=0.030]
+100% 21/21 [00:04<00:00,  4.96Batch/s]
+- Val metrics:
+correct_num: 877.000; predict_num: 1297.000; gold_num: 1223.000; precision: 0.676; recall: 0.717; f1: 0.696
+- Found new best F1
+Epoch 7/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.009, loss_mat=0.001, loss_rel=0.007, loss_seq=0.027]
+100% 21/21 [00:04<00:00,  4.96Batch/s]
+- Val metrics:
+correct_num: 902.000; predict_num: 1285.000; gold_num: 1223.000; precision: 0.702; recall: 0.738; f1: 0.719
+- Found new best F1
+Epoch 8/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.009, loss_mat=0.001, loss_rel=0.006, loss_seq=0.026]
+100% 21/21 [00:04<00:00,  5.02Batch/s]
+- Val metrics:
+correct_num: 900.000; predict_num: 1282.000; gold_num: 1223.000; precision: 0.702; recall: 0.736; f1: 0.719
+Epoch 9/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.009, loss_mat=0.001, loss_rel=0.005, loss_seq=0.029]
+100% 21/21 [00:04<00:00,  5.00Batch/s]
+- Val metrics:
+correct_num: 923.000; predict_num: 1273.000; gold_num: 1223.000; precision: 0.725; recall: 0.755; f1: 0.740
+- Found new best F1
+Epoch 10/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.009, loss_mat=0.001, loss_rel=0.005, loss_seq=0.027]
+100% 21/21 [00:04<00:00,  4.98Batch/s]
+- Val metrics:
+correct_num: 952.000; predict_num: 1358.000; gold_num: 1223.000; precision: 0.701; recall: 0.778; f1: 0.738
+Epoch 11/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.007, loss_mat=0.001, loss_rel=0.005, loss_seq=0.022]
+100% 21/21 [00:04<00:00,  5.03Batch/s]
+- Val metrics:
+correct_num: 947.000; predict_num: 1301.000; gold_num: 1223.000; precision: 0.728; recall: 0.774; f1: 0.750
+- Found new best F1
+Epoch 12/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.007, loss_mat=0.001, loss_rel=0.004, loss_seq=0.024]
+100% 21/21 [00:04<00:00,  4.97Batch/s]
+- Val metrics:
+correct_num: 935.000; predict_num: 1247.000; gold_num: 1223.000; precision: 0.750; recall: 0.765; f1: 0.757
+- Found new best F1
+Epoch 13/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.007, loss_mat=0.001, loss_rel=0.004, loss_seq=0.024]
+100% 21/21 [00:04<00:00,  5.05Batch/s]
+- Val metrics:
+correct_num: 938.000; predict_num: 1212.000; gold_num: 1223.000; precision: 0.774; recall: 0.767; f1: 0.770
+- Found new best F1
+Epoch 14/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.006, loss_mat=0.001, loss_rel=0.004, loss_seq=0.018]
+100% 21/21 [00:04<00:00,  5.08Batch/s]
+- Val metrics:
+correct_num: 944.000; predict_num: 1188.000; gold_num: 1223.000; precision: 0.795; recall: 0.772; f1: 0.783
+- Found new best F1
+Epoch 15/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.006, loss_mat=0.001, loss_rel=0.004, loss_seq=0.019]
+100% 21/21 [00:04<00:00,  5.07Batch/s]
+- Val metrics:
+correct_num: 986.000; predict_num: 1223.000; gold_num: 1223.000; precision: 0.806; recall: 0.806; f1: 0.806
+- Found new best F1
+Epoch 16/100
+100% 1802/1802 [05:00<00:00,  6.01it/s, loss=0.005, loss_mat=0.001, loss_rel=0.003, loss_seq=0.016]
+100% 21/21 [00:04<00:00,  5.09Batch/s]
+- Val metrics:
+correct_num: 992.000; predict_num: 1243.000; gold_num: 1223.000; precision: 0.798; recall: 0.811; f1: 0.805
+Epoch 17/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.006, loss_mat=0.001, loss_rel=0.003, loss_seq=0.019]
+100% 21/21 [00:04<00:00,  5.08Batch/s]
+- Val metrics:
+correct_num: 953.000; predict_num: 1277.000; gold_num: 1223.000; precision: 0.746; recall: 0.779; f1: 0.762
+Epoch 18/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.005, loss_mat=0.001, loss_rel=0.002, loss_seq=0.015]
+100% 21/21 [00:04<00:00,  5.10Batch/s]
+- Val metrics:
+correct_num: 957.000; predict_num: 1247.000; gold_num: 1223.000; precision: 0.767; recall: 0.783; f1: 0.775
+Epoch 19/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.004, loss_mat=0.001, loss_rel=0.003, loss_seq=0.013]
+100% 21/21 [00:04<00:00,  5.09Batch/s]
+- Val metrics:
+correct_num: 990.000; predict_num: 1233.000; gold_num: 1223.000; precision: 0.803; recall: 0.809; f1: 0.806
+Epoch 20/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.005, loss_mat=0.001, loss_rel=0.002, loss_seq=0.014]
+100% 21/21 [00:04<00:00,  5.06Batch/s]
+- Val metrics:
+correct_num: 976.000; predict_num: 1235.000; gold_num: 1223.000; precision: 0.790; recall: 0.798; f1: 0.794
+Epoch 21/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.004, loss_mat=0.001, loss_rel=0.002, loss_seq=0.012]
+100% 21/21 [00:04<00:00,  5.06Batch/s]
+- Val metrics:
+correct_num: 999.000; predict_num: 1265.000; gold_num: 1223.000; precision: 0.790; recall: 0.817; f1: 0.803
+Epoch 22/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.004, loss_mat=0.001, loss_rel=0.003, loss_seq=0.013]
+100% 21/21 [00:04<00:00,  5.02Batch/s]
+- Val metrics:
+correct_num: 985.000; predict_num: 1343.000; gold_num: 1223.000; precision: 0.733; recall: 0.805; f1: 0.768
+Epoch 23/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.005, loss_mat=0.001, loss_rel=0.003, loss_seq=0.015]
+100% 21/21 [00:04<00:00,  5.08Batch/s]
+- Val metrics:
+correct_num: 961.000; predict_num: 1216.000; gold_num: 1223.000; precision: 0.790; recall: 0.786; f1: 0.788
+Epoch 24/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.004, loss_mat=0.001, loss_rel=0.002, loss_seq=0.011]
+100% 21/21 [00:04<00:00,  5.11Batch/s]
+- Val metrics:
+correct_num: 1032.000; predict_num: 1234.000; gold_num: 1223.000; precision: 0.836; recall: 0.844; f1: 0.840
+- Found new best F1
+Epoch 25/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.003, loss_mat=0.000, loss_rel=0.002, loss_seq=0.009]
+100% 21/21 [00:04<00:00,  5.10Batch/s]
+- Val metrics:
+correct_num: 1011.000; predict_num: 1220.000; gold_num: 1223.000; precision: 0.829; recall: 0.827; f1: 0.828
+Epoch 26/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.003, loss_mat=0.000, loss_rel=0.002, loss_seq=0.009]
+100% 21/21 [00:04<00:00,  5.11Batch/s]
+- Val metrics:
+correct_num: 1014.000; predict_num: 1233.000; gold_num: 1223.000; precision: 0.822; recall: 0.829; f1: 0.826
+Epoch 27/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.004, loss_mat=0.001, loss_rel=0.002, loss_seq=0.012]
+100% 21/21 [00:04<00:00,  5.10Batch/s]
+- Val metrics:
+correct_num: 969.000; predict_num: 1229.000; gold_num: 1223.000; precision: 0.788; recall: 0.792; f1: 0.790
+Epoch 28/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.003, loss_mat=0.000, loss_rel=0.002, loss_seq=0.011]
+100% 21/21 [00:04<00:00,  5.12Batch/s]
+- Val metrics:
+correct_num: 1011.000; predict_num: 1218.000; gold_num: 1223.000; precision: 0.830; recall: 0.827; f1: 0.828
+Epoch 29/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.007]
+100% 21/21 [00:04<00:00,  5.10Batch/s]
+- Val metrics:
+correct_num: 1014.000; predict_num: 1218.000; gold_num: 1223.000; precision: 0.833; recall: 0.829; f1: 0.831
+Epoch 30/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.003, loss_mat=0.000, loss_rel=0.001, loss_seq=0.008]
+100% 21/21 [00:04<00:00,  5.09Batch/s]
+- Val metrics:
+correct_num: 1000.000; predict_num: 1214.000; gold_num: 1223.000; precision: 0.824; recall: 0.818; f1: 0.821
+Epoch 31/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.003, loss_mat=0.000, loss_rel=0.002, loss_seq=0.009]
+100% 21/21 [00:04<00:00,  5.11Batch/s]
+- Val metrics:
+correct_num: 1004.000; predict_num: 1237.000; gold_num: 1223.000; precision: 0.812; recall: 0.821; f1: 0.816
+Epoch 32/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.003, loss_mat=0.000, loss_rel=0.002, loss_seq=0.009]
+100% 21/21 [00:04<00:00,  5.07Batch/s]
+- Val metrics:
+correct_num: 1017.000; predict_num: 1210.000; gold_num: 1223.000; precision: 0.840; recall: 0.832; f1: 0.836
+Epoch 33/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.007]
+100% 21/21 [00:04<00:00,  5.11Batch/s]
+- Val metrics:
+correct_num: 982.000; predict_num: 1231.000; gold_num: 1223.000; precision: 0.798; recall: 0.803; f1: 0.800
+Epoch 34/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.007]
+100% 21/21 [00:04<00:00,  5.12Batch/s]
+- Val metrics:
+correct_num: 1016.000; predict_num: 1220.000; gold_num: 1223.000; precision: 0.833; recall: 0.831; f1: 0.832
+Epoch 35/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.006]
+100% 21/21 [00:04<00:00,  5.12Batch/s]
+- Val metrics:
+correct_num: 1022.000; predict_num: 1191.000; gold_num: 1223.000; precision: 0.858; recall: 0.836; f1: 0.847
+- Found new best F1
+Epoch 36/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.007]
+100% 21/21 [00:04<00:00,  5.10Batch/s]
+- Val metrics:
+correct_num: 970.000; predict_num: 1153.000; gold_num: 1223.000; precision: 0.841; recall: 0.793; f1: 0.816
+Epoch 37/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.007]
+100% 21/21 [00:04<00:00,  5.08Batch/s]
+- Val metrics:
+correct_num: 972.000; predict_num: 1196.000; gold_num: 1223.000; precision: 0.813; recall: 0.795; f1: 0.804
+Epoch 38/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.006]
+100% 21/21 [00:04<00:00,  5.10Batch/s]
+- Val metrics:
+correct_num: 1020.000; predict_num: 1218.000; gold_num: 1223.000; precision: 0.837; recall: 0.834; f1: 0.836
+Epoch 39/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.006]
+100% 21/21 [00:04<00:00,  5.07Batch/s]
+- Val metrics:
+correct_num: 994.000; predict_num: 1220.000; gold_num: 1223.000; precision: 0.815; recall: 0.813; f1: 0.814
+Epoch 40/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.006]
+100% 21/21 [00:04<00:00,  5.13Batch/s]
+- Val metrics:
+correct_num: 1033.000; predict_num: 1205.000; gold_num: 1223.000; precision: 0.857; recall: 0.845; f1: 0.851
+- Found new best F1
+Epoch 41/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.005]
+100% 21/21 [00:04<00:00,  5.09Batch/s]
+- Val metrics:
+correct_num: 1025.000; predict_num: 1192.000; gold_num: 1223.000; precision: 0.860; recall: 0.838; f1: 0.849
+Epoch 42/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.006]
+100% 21/21 [00:04<00:00,  5.12Batch/s]
+- Val metrics:
+correct_num: 1034.000; predict_num: 1210.000; gold_num: 1223.000; precision: 0.855; recall: 0.845; f1: 0.850
+Epoch 43/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.001, loss_seq=0.004]
+100% 21/21 [00:04<00:00,  5.08Batch/s]
+- Val metrics:
+correct_num: 1004.000; predict_num: 1194.000; gold_num: 1223.000; precision: 0.841; recall: 0.821; f1: 0.831
+Epoch 44/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.001, loss_seq=0.004]
+100% 21/21 [00:04<00:00,  5.11Batch/s]
+- Val metrics:
+correct_num: 1018.000; predict_num: 1206.000; gold_num: 1223.000; precision: 0.844; recall: 0.832; f1: 0.838
+Epoch 45/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.001, loss_seq=0.004]
+100% 21/21 [00:04<00:00,  5.11Batch/s]
+- Val metrics:
+correct_num: 1000.000; predict_num: 1181.000; gold_num: 1223.000; precision: 0.847; recall: 0.818; f1: 0.832
+Epoch 46/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.007]
+100% 21/21 [00:04<00:00,  5.08Batch/s]
+- Val metrics:
+correct_num: 1004.000; predict_num: 1194.000; gold_num: 1223.000; precision: 0.841; recall: 0.821; f1: 0.831
+Epoch 47/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.002, loss_mat=0.000, loss_rel=0.001, loss_seq=0.005]
+100% 21/21 [00:04<00:00,  5.11Batch/s]
+- Val metrics:
+correct_num: 1012.000; predict_num: 1198.000; gold_num: 1223.000; precision: 0.845; recall: 0.827; f1: 0.836
+Epoch 48/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.001, loss_seq=0.004]
+100% 21/21 [00:04<00:00,  5.13Batch/s]
+- Val metrics:
+correct_num: 1025.000; predict_num: 1204.000; gold_num: 1223.000; precision: 0.851; recall: 0.838; f1: 0.845
+Epoch 49/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.001, loss_mat=0.000, loss_rel=0.001, loss_seq=0.003]
+100% 21/21 [00:04<00:00,  5.08Batch/s]
+- Val metrics:
+correct_num: 1001.000; predict_num: 1190.000; gold_num: 1223.000; precision: 0.841; recall: 0.818; f1: 0.830
+Epoch 50/100
+100% 1802/1802 [05:00<00:00,  6.00it/s, loss=0.001, loss_mat=0.000, loss_rel=0.001, loss_seq=0.004]
+100% 21/21 [00:04<00:00,  5.10Batch/s]
+- Val metrics:
+correct_num: 1048.000; predict_num: 1210.000; gold_num: 1223.000; precision: 0.866; recall: 0.857; f1: 0.861
+- Found new best F1
+Epoch 51/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.001, loss_seq=0.003]
+100% 21/21 [00:04<00:00,  5.10Batch/s]
+- Val metrics:
+correct_num: 1047.000; predict_num: 1208.000; gold_num: 1223.000; precision: 0.867; recall: 0.856; f1: 0.861
+Epoch 52/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.000, loss_seq=0.002]
+100% 21/21 [00:04<00:00,  5.11Batch/s]
+- Val metrics:
+correct_num: 1053.000; predict_num: 1191.000; gold_num: 1223.000; precision: 0.884; recall: 0.861; f1: 0.872
+- Found new best F1
+Epoch 53/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.000, loss_seq=0.003]
+100% 21/21 [00:04<00:00,  5.11Batch/s]
+- Val metrics:
+correct_num: 1031.000; predict_num: 1199.000; gold_num: 1223.000; precision: 0.860; recall: 0.843; f1: 0.851
+Epoch 54/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.001, loss_seq=0.004]
+100% 21/21 [00:04<00:00,  5.08Batch/s]
+- Val metrics:
+correct_num: 1017.000; predict_num: 1199.000; gold_num: 1223.000; precision: 0.848; recall: 0.832; f1: 0.840
+Epoch 55/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.000, loss_seq=0.002]
+100% 21/21 [00:04<00:00,  5.11Batch/s]
+- Val metrics:
+correct_num: 1038.000; predict_num: 1200.000; gold_num: 1223.000; precision: 0.865; recall: 0.849; f1: 0.857
+Epoch 56/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.000, loss_seq=0.002]
+100% 21/21 [00:04<00:00,  5.10Batch/s]
+- Val metrics:
+correct_num: 1039.000; predict_num: 1219.000; gold_num: 1223.000; precision: 0.852; recall: 0.850; f1: 0.851
+Epoch 57/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.000, loss_seq=0.002]
+100% 21/21 [00:04<00:00,  5.14Batch/s]
+- Val metrics:
+correct_num: 1037.000; predict_num: 1193.000; gold_num: 1223.000; precision: 0.869; recall: 0.848; f1: 0.858
+Epoch 58/100
+100% 1802/1802 [05:00<00:00,  5.99it/s, loss=0.001, loss_mat=0.000, loss_rel=0.000, loss_seq=0.002]
+100% 21/21 [00:04<00:00,  5.10Batch/s]
+- Val metrics:
+correct_num: 1055.000; predict_num: 1215.000; gold_num: 1223.000; precision: 0.868; recall: 0.863; f1: 0.865
+Epoch 59/100
+ 31% 566/1802 [01:34<03:30,  5.86it/s, loss=0.000, loss_mat=0.000, loss_rel=0.000, loss_seq=0.001]
