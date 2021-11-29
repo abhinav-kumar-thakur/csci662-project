@@ -31,20 +31,21 @@ max_seq_len = 100
 
 # relation judgement
 rel_judgement = MultiNonLinearClassifier(embedding_dimention, rel_num, drop_prob)
-rel_judgement_macs, rel_judgement_params = get_model_complexity_info(rel_judgement, (batch_size, embedding_dimention), as_strings=False, print_per_layer_stat=True, verbose=True)
+dimension_rel = (batch_size, embedding_dimention)
+rel_judgement_macs, rel_judgement_params = get_model_complexity_info(rel_judgement, dimension_rel, as_strings=False, print_per_layer_stat=True, verbose=True)
 print('{:<30}  {:<8}'.format('Computational complexity: ', rel_judgement_macs))
 print('{:<30}  {:<8}'.format('Number of parameters: ', rel_judgement_params))
 
 # sequence tagging
+dimension_seq = (batch_size * potential_target_relation, embedding_dimention * 2)
+
 sequence_tagging_sub = MultiNonLinearClassifier(embedding_dimention * 2, seq_tag_size, drop_prob)
-sequence_tagging_sub_macs, sequence_tagging_sub_params = get_model_complexity_info(sequence_tagging_sub, (batch_size * potential_target_relation, embedding_dimention * 2), as_strings=False,
-                                                                                   print_per_layer_stat=True, verbose=True)
+sequence_tagging_sub_macs, sequence_tagging_sub_params = get_model_complexity_info(sequence_tagging_sub, dimension_seq, as_strings=False, print_per_layer_stat=True, verbose=True)
 print('{:<30}  {:<8}'.format('Computational complexity: ', sequence_tagging_sub_macs))
 print('{:<30}  {:<8}'.format('Number of parameters: ', sequence_tagging_sub_params))
 
 sequence_tagging_obj = MultiNonLinearClassifier(embedding_dimention * 2, seq_tag_size, drop_prob)
-sequence_tagging_obj_macs, sequence_tagging_obj_params = get_model_complexity_info(sequence_tagging_obj, (batch_size * potential_target_relation, embedding_dimention * 2), as_strings=False,
-                                                                                   print_per_layer_stat=True, verbose=True)
+sequence_tagging_obj_macs, sequence_tagging_obj_params = get_model_complexity_info(sequence_tagging_obj, dimension_seq, as_strings=False, print_per_layer_stat=True, verbose=True)
 print('{:<30}  {:<8}'.format('Computational complexity: ', sequence_tagging_obj_macs))
 print('{:<30}  {:<8}'.format('Number of parameters: ', sequence_tagging_obj_params))
 
@@ -53,7 +54,8 @@ print('{:<30}  {:<8}'.format('Number of parameters: ', sequence_tagging_obj_para
 
 # global correspondence
 global_corres = MultiNonLinearClassifier(embedding_dimention * 2, 1, drop_prob)
-global_corres_macs, global_corres_params = get_model_complexity_info(global_corres, (batch_size * max_seq_len * max_seq_len, embedding_dimention * 2), as_strings=False, print_per_layer_stat=True,
+dimension_corres = (batch_size * max_seq_len * max_seq_len, embedding_dimention * 2)
+global_corres_macs, global_corres_params = get_model_complexity_info(global_corres, dimension_corres, as_strings=False, print_per_layer_stat=True,
                                                                      verbose=True)
 print('{:<30}  {:<8}'.format('Computational complexity: ', global_corres_macs))
 print('{:<30}  {:<8}'.format('Number of parameters: ', global_corres_params))
