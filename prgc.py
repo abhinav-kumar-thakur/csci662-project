@@ -71,8 +71,10 @@ class ValDataset(Dataset):
 
 
 class PRGC(nn.Module):
-    def __init__(self, bert, rel_num, lambda_1, lambda_2):
+    def __init__(self, bert, rel_num, lambda_1, lambda_2, fusion_type):
         super().__init__()
+
+        self.fusion_type = fusion_type
 
         # Bert Embedding
         self.bert = bert
@@ -84,9 +86,10 @@ class PRGC(nn.Module):
         self.lambda_1 = lambda_1
 
         # Stage 2
-        self.hidden_tag = nn.Linear(hidden_dim, hidden_dim // 2)
-        self.tag_subject = nn.Linear(hidden_dim // 2, 3)
-        self.tag_object = nn.Linear(hidden_dim // 2, 3)
+        fusion_multiplier = 2 if self.fusion_type == 'concat' else 1
+        self.hidden_tag = nn.Linear(fusion_multiplier * hidden_dim, fusion_multiplier * hidden_dim // 2)
+        self.tag_subject = nn.Linear(fusion_multiplier * hidden_dim // 2, 3)
+        self.tag_object = nn.Linear(hidden_dim * fusion_multiplier // 2, 3)
         # Relation Trainable Embedding Matrix
         self.rel_embedding = nn.Embedding(num_embeddings=rel_num, embedding_dim=hidden_dim)
 
@@ -146,7 +149,7 @@ class PRGC(nn.Module):
 
         # TODO: Check if masked embed_tokens is better
         target_rel_emb = target_rel_emb.unsqueeze(1).repeat((1, input_ids.shape[1], 1))
-        fusion = target_rel_emb + embed_tokens
+        fusion = torch.cat([target_rel_emb, embed_tokens], dim=-1) if self.fusion_type == 'concat' else target_rel_emb + embed_tokens
         fusion = self.hidden_tag(fusion)
         subj_pred_tag = self.tag_subject(fusion)
         obj_pred_tag = self.tag_object(fusion)
@@ -204,7 +207,8 @@ def train_epoch(model, iterator, epoch, device):
         loss_corres = criterion_BCE_NoReduction(pred_corres_matrix.squeeze(3), corres_matrix.float())
         loss_corres = (loss_corres * matrix_mask).sum() / matrix_mask.sum()
         file_logger.append('rec_corres', ((torch.sigmoid(pred_corres_matrix).squeeze(-1) > model.lambda_2) & corres_matrix.bool()).sum().item() / corres_matrix.sum().item())
-        file_logger.append('prec_corres', ((torch.sigmoid(pred_corres_matrix).squeeze(-1) > model.lambda_2) & corres_matrix.bool()).sum().item() / max(1, (torch.sigmoid(pred_corres_matrix) > model.lambda_2).sum().item()))
+        file_logger.append('prec_corres', ((torch.sigmoid(pred_corres_matrix).squeeze(-1) > model.lambda_2) & corres_matrix.bool()).sum().item() / max(1, (
+                torch.sigmoid(pred_corres_matrix) > model.lambda_2).sum().item()))
 
         loss = loss_rel + loss_tag + loss_corres
         loss.backward()
@@ -256,6 +260,7 @@ def get_arguments():
     parser.add_argument("-lambda2", type=float, default='0.5', help="threshold for global correspondence, in [0,1]")
     parser.add_argument("-gpuid", type=str, default='0', help="GPU id ")
     parser.add_argument("-seed", type=int, default='2021', help="RNG seed")
+    parser.add_argument("-fusion", type=str, default='concat', help="Fusion type concat or sum")
     return parser.parse_args()
 
 
@@ -270,13 +275,13 @@ if __name__ == "__main__":
 
     torch.manual_seed(args.seed)
 
-    #plm_tokenizer = AutoTokenizer.from_pretrained(args.checkpoint)
-    plm_tokenizer = BertTokenizer(vocab_file=os.path.join(os.path.dirname(__file__),'pretrained_model','vocab.txt'),
-                                    do_lower_case=False)
+    # plm_tokenizer = AutoTokenizer.from_pretrained(args.checkpoint)
+    plm_tokenizer = BertTokenizer(vocab_file=os.path.join(os.path.dirname(__file__), 'pretrained_model', 'vocab.txt'),
+                                  do_lower_case=False)
     configuration = BertConfig()
-    pathtoModel = os.path.join(os.sep,os.path.dirname(__file__),'pretrained_model')
+    pathtoModel = 'pretrained_model'
     plm_weights = AutoModel.from_pretrained(pathtoModel)
-    max_seq_len = plm_tokenizer.max_model_input_sizes[args.checkpoint]-2 # -2 for [CLS] and [SEP]
+    max_seq_len = plm_tokenizer.max_model_input_sizes[args.checkpoint] - 2  # -2 for [CLS] and [SEP]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -291,7 +296,7 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, args.batchsize, shuffle=True, drop_last=True)
     val_loader = DataLoader(val_dataset, args.batchsize, shuffle=True, drop_last=True, collate_fn=utils.val_collate_fn)
 
-    prgc_model = PRGC(plm_weights, rel_num, args.lambda1, args.lambda2).to(device)
+    prgc_model = PRGC(plm_weights, rel_num, args.lambda1, args.lambda2, args.fusion).to(device)
 
     for epoch in range(args.nepochs):
         train_epoch_loss = train_epoch(prgc_model, train_loader, epoch, device)
