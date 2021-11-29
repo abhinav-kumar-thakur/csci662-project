@@ -177,4 +177,3 @@ class EpochMetricFileLogger():
             for metric_name, values in self.metrics.items():
                 f.write(f'{metric_name}: {sum(values) / len(values)}\n')
             f.write('\n')
-        self.metrics = defaultdict[list]

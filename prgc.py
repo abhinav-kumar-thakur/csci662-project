@@ -180,8 +180,8 @@ def train_epoch(model, iterator, epoch, device):
 
         # Stage 1 Loss
         loss_rel = criterion_BCE(stage1, relation_labels.float())
-        file_logger.append('rec_rel', ((torch.sigmoid(stage1) > model.lambda_1) & relation_labels.bool()).sum().item() / relation_labels.sum().item())
-        file_logger.append('prec_rel', ((torch.sigmoid(stage1) > model.lambda_1) & relation_labels.bool()).sum().item() / (torch.sigmoid(stage1) > model.lambda_1).sum().item())
+        file_logger.append('rec_rel', ((torch.sigmoid(stage1) > model.lambda_1) & relation_labels.bool()).sum().item() / max(1, relation_labels.sum().item()))
+        file_logger.append('prec_rel', ((torch.sigmoid(stage1) > model.lambda_1) & relation_labels.bool()).sum().item() / max((1, torch.sigmoid(stage1) > model.lambda_1).sum().item()))
 
         # Stage 2 Loss
         loss_tag = (criterion_CE(subj_pred_tag.view(-1, 3), subj_seq_tag.flatten()) + criterion_CE(obj_pred_tag.view(-1, 3), obj_seq_tag.flatten()))
@@ -251,7 +251,7 @@ def get_arguments():
     parser.add_argument("-batchsize", type=int, default='6', help="size of each batch")
     parser.add_argument("-lambda1", type=float, default='0.1', help="threshold for relation judgement, in [0,1]")
     parser.add_argument("-lambda2", type=float, default='0.5', help="threshold for global correspondence, in [0,1]")
-    parser.add_argument("-gpuid", type=str, default='0', help="GPU id ")
+    parser.add_argument("-gpuid", type=str, default='2', help="GPU id ")
     parser.add_argument("-seed", type=int, default='2021', help="RNG seed")
     return parser.parse_args()
 
