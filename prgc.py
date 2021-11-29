@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoModel, AutoTokenizer, BertConfig, BertTokenizer
 import argparse
 import utils
 from tqdm import tqdm
@@ -252,8 +252,12 @@ if __name__ == "__main__":
 
     torch.manual_seed(args.seed)
 
-    plm_tokenizer = AutoTokenizer.from_pretrained(args.checkpoint)
-    plm_weights = AutoModel.from_pretrained(args.checkpoint)
+    #plm_tokenizer = AutoTokenizer.from_pretrained(args.checkpoint)
+    plm_tokenizer = BertTokenizer(vocab_file=os.path.join(os.path.dirname(__file__),'pretrained_model','vocab.txt'),
+                                    do_lower_case=False)
+    configuration = BertConfig()
+    pathtoModel = os.path.join(os.sep,os.path.dirname(__file__),'pretrained_model')
+    plm_weights = AutoModel.from_pretrained(pathtoModel)
     max_seq_len = plm_tokenizer.max_model_input_sizes[args.checkpoint]-2 # -2 for [CLS] and [SEP]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
