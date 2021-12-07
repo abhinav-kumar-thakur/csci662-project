@@ -113,7 +113,7 @@ class TrainDataset(Dataset):
             text,
             add_special_tokens=False,
             padding=True,
-            max_length=100,
+            max_length=max_plm_seq_len,
             truncation=True,
             return_token_type_ids=False,
             return_attention_mask=True,
