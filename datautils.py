@@ -1,8 +1,7 @@
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, RandomSampler
 import torch
 import os
 import json
-import utils
 
 def ReadData(Dataset, type):
     type = type + '.json' if type == 'rel2id' else type + '_triples.json'
@@ -20,12 +19,15 @@ def ReadData(Dataset, type):
             labels.append(example['triple_list'])
         return text, labels
 
-def FindHeadIdx(head_token_id, input_ids):
-    return list(input_ids).index(head_token_id)
+def FindHeadIdx(ent_ids, input_ids):
+    for ii in range(len(input_ids)):
+        if (input_ids[ii:ii+len(ent_ids)] == ent_ids):
+            return ii
+    return -1
 
 def GetEntRange(input_ids, ent_str, tokenizer):
     ent_ids = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(ent_str))
-    head_idx = FindHeadIdx(ent_ids[0], input_ids)
+    head_idx = FindHeadIdx(ent_ids, input_ids.tolist())
     range_ent = (head_idx, head_idx + len(ent_ids) - 1)
     return range_ent
 
@@ -45,14 +47,14 @@ def GetTrainFeatures(rel2id, str_labels, input_ids, attention_mask, tokenizer, s
             target_rel = rel2id[label[1]]
 
             subj_token_ids = torch.tensor(tokenizer.convert_tokens_to_ids(tokenizer.tokenize(label[0])))
-            subj_head_idx = FindHeadIdx(subj_token_ids[0], input_ids[idx1])
+            subj_head_idx = FindHeadIdx(subj_token_ids.tolist(), input_ids[idx1].tolist())
             subj_seq_tag[subj_head_idx] = 1
             subj_seq_tag[(subj_head_idx + 1):(subj_head_idx + len(subj_token_ids))] = 2
 
             relation_labels[rel2id[label[1]]] = 1
 
             obj_token_ids = torch.tensor(tokenizer.convert_tokens_to_ids(tokenizer.tokenize(label[2])))
-            obj_head_idx = FindHeadIdx(obj_token_ids[0], input_ids[idx1])
+            obj_head_idx = FindHeadIdx(obj_token_ids.tolist(), input_ids[idx1].tolist())
             obj_seq_tag[obj_head_idx] = 1
             obj_seq_tag[(obj_head_idx + 1):(obj_head_idx + len(obj_token_ids))] = 2
 
@@ -111,7 +113,7 @@ class TrainDataset(Dataset):
             text,
             add_special_tokens=False,
             padding=True,
-            max_length=max_plm_seq_len,
+            max_length=100,
             truncation=True,
             return_token_type_ids=False,
             return_attention_mask=True,

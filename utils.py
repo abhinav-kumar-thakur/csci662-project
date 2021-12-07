@@ -20,8 +20,8 @@ def GenerateTriples(sentence_rel_map, subj_pred_tag, obj_pred_tag, pred_corres_m
         sub_tags = torch.argmax(subj_pred_tag[idx], dim=1)
         obj_tags = torch.argmax(obj_pred_tag[idx], dim=1)
 
-        sub_head_candidates = (sub_tags == 1).nonzero().squeeze(1).tolist()
-        obj_head_candidates = (obj_tags == 1).nonzero().squeeze(1).tolist()
+        sub_head_candidates = torch.nonzero(sub_tags == 1,as_tuple=False).squeeze(1).tolist()
+        obj_head_candidates = torch.nonzero(obj_tags == 1,as_tuple=False).squeeze(1).tolist()
         subj_obj_corres = (pred_corres_matrix[sentence_rel[0]] > lambda_2)
 
         possible_pairs = list(product(sub_head_candidates, obj_head_candidates))

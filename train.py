@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
-from transformers import BertModel, BertConfig, BertTokenizer
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
+from transformers import BertConfig, BertTokenizer
 import argparse
 import utils
-from tqdm.auto import tqdm
+from tqdm import tqdm, trange
 from optimization import BertAdam
 from prgc import PRGC
 from datautils import TrainDataset, ValDataset, ReadData
@@ -19,9 +19,10 @@ def train_epoch(model, iterator, optimizer, gradient_accumulation_steps,  epoch,
     criterion_BCE = nn.BCEWithLogitsLoss()
     criterion_BCE_NoReduction = nn.BCEWithLogitsLoss(reduction='none')
     criterion_CE = nn.CrossEntropyLoss(reduction='none')
-    tepoch = tqdm(iterator, desc=f'Epoch {epoch}', total=len(iterator))
+    tepoch = trange(len(iterator), ascii=True)
     model.zero_grad()
-    for bi, batch in enumerate(tepoch):
+    for bi, _ in enumerate(tepoch):
+        batch = next(iter(iterator))
         ids = batch['input_ids'].to(device); attention_mask = batch['attention_mask'].to(device)
         subj_seq_tag = batch['subj_seq_tag'].to(device); obj_seq_tag = batch['obj_seq_tag'].to(device)
         target_rel = batch['target_rel'].to(device); relation_labels = batch['relation_labels'].to(device)
@@ -87,7 +88,7 @@ def evaluate_epoch(model, iterator, device):
     gold_num = 0;
     pred_num = 0
     with torch.no_grad():
-        for batch in tqdm(iterator):
+        for batch in tqdm(iterator,unit='Batch',ascii=True):
             ids = batch[0].to(device);
             attention_mask = batch[1].to(device)
             triples = batch[2]
@@ -114,9 +115,10 @@ def get_arguments():
     parser.add_argument("-batchsize", type=int, default='6', help="size of each batch")
     parser.add_argument("-lambda1", type=float, default='0.1', help="threshold for relation judgement, in [0,1]")
     parser.add_argument("-lambda2", type=float, default='0.5', help="threshold for global correspondence, in [0,1]")
-    parser.add_argument("-gpuid", type=str, default='3', help="GPU id ")
+    parser.add_argument("-gpuid", type=str, default='2', help="GPU id ")
     parser.add_argument("-seed", type=int, default='2021', help="RNG seed")
     parser.add_argument("-fusion", type=str, default='concat', help="Fusion type concat or sum")
+    parser.add_argument("-opt", type=str, default='bertadam', help="optimizer from {'bertadam','adam'}")
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -129,29 +131,38 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpuid
 
     torch.manual_seed(args.seed)
-
-    plm_tokenizer = BertTokenizer(vocab_file=os.path.join(os.path.dirname(__file__), 'pretrained_model', 'vocab.txt'),
-                                  do_lower_case=False)
-    configuration = BertConfig()
-    plm_weights = BertModel.from_pretrained('pretrained_model')
-    max_plm_seq_len = plm_tokenizer.max_model_input_sizes[args.checkpoint] - 2  # -2 for [CLS] and [SEP]
-
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    bert_tokenizer = BertTokenizer(vocab_file=os.path.join(os.path.dirname(__file__), 'pretrained_model', 'vocab.txt'),
+                                  do_lower_case=False)
+    max_plm_seq_len = bert_tokenizer.max_model_input_sizes[args.checkpoint] - 2  # -2 for [CLS] and [SEP]
+
+
+    bert_config = BertConfig.from_json_file(json_file=os.path.join(os.path.dirname(__file__), 'pretrained_model', 'config.json'))
+    sim_params = {'rel_num':rel_num,'lambda_1': args.lambda1, 'lambda_2':args.lambda2,'fusion_type':args.fusion}
+    model = PRGC.from_pretrained(config=bert_config,pretrained_model_name_or_path='pretrained_model',params=sim_params).to(device)
+
 
     # Read data from file
     train_text, train_labels = ReadData(args.dataset, 'train')
     val_text, val_labels = ReadData(args.dataset, 'val')
     rel2id = ReadData(args.dataset, 'rel2id')
 
-    train_dataset = TrainDataset(train_text, train_labels, rel2id, plm_tokenizer, max_plm_seq_len)
-    val_dataset = ValDataset(val_text, val_labels, rel2id, plm_tokenizer, train_dataset.seq_len)
+    train_dataset = TrainDataset(train_text, train_labels, rel2id, bert_tokenizer, max_plm_seq_len)
+    traindatasampler = RandomSampler(train_dataset)
+    train_loader = DataLoader(train_dataset, sampler=traindatasampler, batch_size=args.batchsize)
 
-    train_loader = DataLoader(train_dataset, args.batchsize, shuffle=True, drop_last=True)
-    val_loader = DataLoader(val_dataset, args.batchsize, shuffle=True, drop_last=True, collate_fn=utils.val_collate_fn)
+    val_dataset = ValDataset(val_text, val_labels, rel2id, bert_tokenizer, train_dataset.seq_len)
+    valdatasampler = SequentialSampler(val_dataset)
+    val_loader = DataLoader(val_dataset, sampler=valdatasampler, batch_size=args.batchsize,
+                                    collate_fn=utils.val_collate_fn)
+    
+    #train_loader = DataLoader(train_dataset, args.batchsize, shuffle=True, drop_last=True)
+    #val_loader = DataLoader(val_dataset, args.batchsize, shuffle=True, drop_last=True, collate_fn=utils.val_collate_fn)
 
-    model = PRGC(plm_weights, rel_num, args.lambda1, args.lambda2, args.fusion).to(device)
 
-    if True:
+    if args.opt == 'adam':
         # Adam Optimizer
         optimizer = optim.AdamW([
             {'params': model.bert.parameters(), 'lr': 1e-4},
@@ -167,7 +178,7 @@ if __name__ == "__main__":
         ], weight_decay=0.01
         )
         gradient_accumulation_steps = None # placeholder
-    else:
+    elif args.opt == 'bertadam':
         # Prepare optimizer
         params = {'weight_decay_rate': 0.01, 'fin_tuning_lr': 1e-4, 'downs_en_lr': 1e-3, 'clip_grad': 2., 'warmup_prop': 0.1, 'gradient_accumulation_steps': 2 }
         # fine-tuning
@@ -198,6 +209,9 @@ if __name__ == "__main__":
         optimizer = BertAdam(optimizer_grouped_parameters, warmup=params['warmup_prop'], schedule="warmup_cosine",
                             t_total=num_train_optimization_steps, max_grad_norm=params['clip_grad'])
     
+
+
     for epoch in range(args.nepochs):
+        print(f'-Epoch: {epoch+1}/{args.nepochs}')
         train_epoch_loss = train_epoch(model, train_loader, optimizer, gradient_accumulation_steps, epoch, device)
         metrics = evaluate_epoch(model, val_loader, device)
