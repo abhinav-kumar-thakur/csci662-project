@@ -5,7 +5,7 @@ The work in this project focuses on the reproduction of the claims in paper:
 * Link: [https://aclanthology.org/2021.acl-long.486/](https://aclanthology.org/2021.acl-long.486/)
 * Source code: [https://github.com/hy-struggle/PRGC](https://github.com/hy-struggle/PRGC)
 * To reproduce run `sh ./prgc_reproduction.sh`
-* To verify computational complexity (not including embedding models)
+* To verify computational complexity (not including embedding models) run `python3 prgc_computation_analysis.py`
 
 # Implementation from scratch
 ## Setup 
