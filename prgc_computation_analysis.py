@@ -10,7 +10,6 @@ potential_target_relation = 3
 
 drop_prob = 0.3
 seq_tag_size = 3
-target_rel_num = 3
 rel_num = 216
 embedding_dimention = 768
 max_seq_len = 100

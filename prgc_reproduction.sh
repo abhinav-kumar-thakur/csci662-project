@@ -13,7 +13,7 @@ cd pretrain_models/bert_base_cased && \
 # Install dependencies
 python3 -m venv prgc-venv
 source prgc-venv/bin/activate
-pip3 install torch transformers tqdm pandas
+pip3 install torch transformers tqdm pandas  ptflops
 
 # Begin training
 python train.py --ex_index=1 --epoch_num=100 --device_id=2 --corpus_type=WebNLG --ensure_corres --ensure_rel --rel_threshold 0.1 --corres_threshold 0.5
