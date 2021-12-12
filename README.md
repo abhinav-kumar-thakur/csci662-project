@@ -38,4 +38,4 @@ The updated code can be found at [https://github.com/abhinav-kumar-thakur/PRGC](
 
 * To create evaluation data for overlapping patterns, run: python3 data/process4detailed.py
 * To evaluate for a particular overlapping pattern, run: `sh ./script/evaluate.sh <PATTEN_TYPE>`
-* Supported pattern types are: `SEO, EPO, SSO`, 
+* Supported pattern types are: `SEO, EPO, SSO`.
