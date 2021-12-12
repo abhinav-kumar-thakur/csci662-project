@@ -4,7 +4,7 @@ The work in this project focuses on the reproduction of the claims in paper:
 **PRGC: Potential Relation and Global Correspondence Based Joint Relational Triple Extraction. Hengyi Zheng, Rui Wen, Xi Chen et al. ACL 2021.**
 * Link: [https://aclanthology.org/2021.acl-long.486/](https://aclanthology.org/2021.acl-long.486/)
 * Source code: [https://github.com/hy-struggle/PRGC](https://github.com/hy-struggle/PRGC)
-* To reproduce run `sh ./prgc_reproduction.sh`
+* To reproduce complete setup (as shown below) and run `sh ./prgc_reproduction.sh`
 * To verify computational complexity (not including embedding models) run `python3 prgc_computation_analysis.py`
 
 # Implementation from scratch
@@ -12,13 +12,16 @@ The work in this project focuses on the reproduction of the claims in paper:
 Python version: 3.7.9
 ### Using conda
 ```shell
-conda create -n myprgc-env -c pytorch -c huggingface python=3.7.9 pytorch=1.6.0 transformers=3.2.0 tqdm pandas
+conda create -n myprgc-env -c pytorch -c huggingface python=3.7.9 pytorch=1.10.0 transformers=3.2.0 tqdm pandas ptflops
+conda activate myprgc-env
 ```
 ### Using pip
 ```shell
+# To create environment
 python3 -m venv myprgc-env
 source myprgc-env/bin/activate
-pip3 install torch transformers tqdm pandas
+# To install dependencies
+pip install torch==1.10.0 transformers==3.2.0 tqdm pandas ptflops
 ```
 ### Downloading pretraing bert-base-uncased model
 ```shell
