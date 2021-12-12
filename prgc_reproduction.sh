@@ -1,5 +1,5 @@
 # To reproduce the results on pytorch enabled environment
-git clone https://github.com/hy-struggle/PRGC.git
+git clone https://github.com/abhinav-kumar-thakur/PRGC
 cd PRGC/
 
 # Download bert model, config and vocab

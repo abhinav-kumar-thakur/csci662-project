@@ -31,3 +31,11 @@ Run:
 ```shell
 python3 prgc.py -dataset 'WebNLG' -checkpoint 'bert-base-uncased' -nepochs 100 -batchsize 6 -lambda1 0.1 -lambda2 0.5 -seed 100
 ```
+
+## Evaluation
+While evaluating the model for overlapping examples, we faced an issue with evaluation scripts share by the author.
+The updated code can be found at [https://github.com/abhinav-kumar-thakur/PRGC](https://github.com/abhinav-kumar-thakur/PRGC) and changes can be seen in the [commit](https://github.com/abhinav-kumar-thakur/PRGC/commit/5a9c77a438ae59076972dc65333d1b78e66eac07#diff-3972a695ff852620b980ed5846b894f4d4e00adb09d8abfc9a81c53564dc1b56).
+
+* To create evaluation data for overlapping patterns, run: python3 data/process4detailed.py
+* To evaluate for a particular overlapping pattern, run: `sh ./script/evaluate.sh <PATTEN_TYPE>`
+* Supported pattern types are: `SEO, EPO, SSO`, 
