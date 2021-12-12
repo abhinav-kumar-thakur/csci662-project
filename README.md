@@ -21,6 +21,7 @@ sh prgc_reproduction.sh
 * To create evaluation data for overlapping patterns, run: `python3 data/process4detailed.py` from cloned PRGC directory
 * To evaluate for a particular overlapping pattern, run: `sh ./script/evaluate.sh <PATTEN_TYPE>` from cloned PRGC directory
 * Supported pattern types are: `SEO, EPO, SSO`.
+* For help refer to [Colab page](https://colab.research.google.com/drive/1K0dLh1dv779k1tZbjgrbKM9R2_Ck9yNx?usp=sharing).
 
 # Implementation from scratch
 ## Setup 
