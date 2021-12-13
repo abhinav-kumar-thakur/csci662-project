@@ -5,8 +5,8 @@ from PRGC.model import MultiNonLinearClassifier
 # from transformers import BertConfig, BertModel
 
 
-batch_size = 10
-potential_target_relation = 3
+batch_size = 1
+potential_target_relation = 1
 
 drop_prob = 0.3
 seq_tag_size = 3

@@ -9,7 +9,7 @@ The work in this project focuses on the reproduction of the claims in paper:
 While evaluating the model for overlapping examples, we faced an issue with evaluation scripts share by the author.
 The updated code can be found at [https://github.com/abhinav-kumar-thakur/PRGC](https://github.com/abhinav-kumar-thakur/PRGC) and changes can be seen in the [commit](https://github.com/abhinav-kumar-thakur/PRGC/commit/5a9c77a438ae59076972dc65333d1b78e66eac07#diff-3972a695ff852620b980ed5846b894f4d4e00adb09d8abfc9a81c53564dc1b56).
 
-* To reproduce complete authors claims using shared code:
+* To setup and run the PRGC source code:
 ```shell
 git clone https://github.com/abhinav-kumar-thakur/csci662-project.git
 cd csci662-project
@@ -23,7 +23,6 @@ python train.py --ex_index=1 --epoch_num=100 --device_id=0 --corpus_type=WebNLG 
 * To create evaluation data for overlapping patterns, run: `python3 data/process4detailed.py` from cloned PRGC directory
 * To evaluate for a particular overlapping pattern, run: `sh ./script/evaluate.sh <PATTEN_TYPE>` from cloned PRGC directory
 * Supported pattern types are: `SEO, EPO, SSO`.
-* For help refer to [Colab page](https://colab.research.google.com/drive/1K0dLh1dv779k1tZbjgrbKM9R2_Ck9yNx?usp=sharing).
 
 # Implementation from scratch
 ## Setup 
@@ -69,4 +68,10 @@ optional arguments:
   -fusion FUSION        Fusion type concat or sum
   -opt OPT              optimizer from {'bertadam','adam'}
 ```
+
+# Colab Demo Page
+**For help refer to [Colab page](https://colab.research.google.com/drive/1K0dLh1dv779k1tZbjgrbKM9R2_Ck9yNx?usp=sharing):**
+It guides through the execution of:
+* PRGC model using author's source code
+* PRGC model implemented from scratch
 

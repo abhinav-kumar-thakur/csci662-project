@@ -42,7 +42,7 @@ class PRGC(BertPreTrainedModel):
     def forward(self, input_ids, attention_mask, target_rel, mode):
         # Bert Embedding
         # with torch.no_grad():
-        embed_tokens = self.bert(input_ids=input_ids, attention_mask=attention_mask)['last_hidden_state']
+        embed_tokens = self.bert(input_ids=input_ids, attention_mask=attention_mask)[0]
         # Stage 1
         embedded_masked = embed_tokens * attention_mask[:, :, None]
         num_nonmasked = torch.sum(attention_mask, dim=1)
