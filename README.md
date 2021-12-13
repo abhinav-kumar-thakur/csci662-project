@@ -14,7 +14,9 @@ The updated code can be found at [https://github.com/abhinav-kumar-thakur/PRGC](
 git clone https://github.com/abhinav-kumar-thakur/csci662-project.git
 cd csci662-project
 pip install torch==1.10.0 transformers==3.2.0 tqdm pandas ptflops
-sh prgc_reproduction.sh
+sh download_and_setup_prgc.sh
+# Update parameters below for trying training with different hyperparameters
+python train.py --ex_index=1 --epoch_num=100 --device_id=0 --corpus_type=WebNLG --ensure_corres --ensure_rel --rel_threshold 0.1 --corres_threshold 0.5
 ```
 * Update `prgc_reproduction.sh` to try out various hyper-parameters
 * To verify computational complexity (not including embedding models) run `python3 prgc_computation_analysis.py`
@@ -46,8 +48,25 @@ mv pytorch_model.bin ./pretrained_model
 ```
 
 ## Training
-Run:
-```shell
-python3 prgc.py -dataset 'WebNLG' -checkpoint 'bert-base-uncased' -nepochs 100 -batchsize 6 -lambda1 0.1 -lambda2 0.5 -seed 100
+Training can be triggered using train.py script, please find the usage below:
+
+```
+usage: train.py [-h] [-dataset DATASET] [-checkpoint CHECKPOINT] [-nepochs NEPOCHS] [-batchsize BATCHSIZE] [-lambda1 LAMBDA1] [-lambda2 LAMBDA2] [-gpuid GPUID] [-seed SEED] [-fusion FUSION] [-opt OPT]
+
+PRGC Model
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -dataset DATASET      Dataset Choice out of {'NYT','NYT-star','WebNLG','WebNLG-star'}
+  -checkpoint CHECKPOINT
+                        chepoint for a pre-trained language model, from https://huggingface.co/models
+  -nepochs NEPOCHS      number of training epochs
+  -batchsize BATCHSIZE  size of each batch
+  -lambda1 LAMBDA1      threshold for relation judgement, in [0,1]
+  -lambda2 LAMBDA2      threshold for global correspondence, in [0,1]
+  -gpuid GPUID          GPU id
+  -seed SEED            RNG seed
+  -fusion FUSION        Fusion type concat or sum
+  -opt OPT              optimizer from {'bertadam','adam'}
 ```
 
